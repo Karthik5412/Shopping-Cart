@@ -11,74 +11,38 @@ from sklearn.model_selection import train_test_split as tts
 model = joblib.load('pickle_files//kmeans.plk')
 tfidf = joblib.load('pickle_files//tfidf.plk')
 
-df = pd.read_csv('datasets//amazon.csv')
-df = df[['product_name', 'about_product', 'img_link', 'product_link']]
+df = pd.read_csv('datasets//cleaned.csv')
 
-subset = df.sample(n=300, random_state=42)
+df = df[['product_id','brand','title','price','category','rating','image_url','product_url','clusters']].copy()
 
-async def preprocessing(data : str) -> str :
-    try :
-        stop_words = set(stopwords.words('english'))
-        lematizer = WordNetLemmatizer()
-        #Lower Case
-        data = str(data).lower()
-        
-        #Remove punctuations
-        data = re.sub(r'[^a-zA-z\s]', "",data)
+subset = df.sample(n=100, random_state=42).reset_index(drop=True)
+dt = subset.to_dict(orient='records').copy()
 
-        #Words split
-        words = data.split()
-
-        #removing stopwords
-        words = [word for word in words if word not in stop_words]
-
-        #Lematization
-        words = [lematizer.lemmatize(word) for word in words]
-
-        return ' '.join(words)
-    except Exception as e:
-        return e 
+async def home_page () :
+    return subset.to_dict(orient='records')
 
 
-async def cluster_prediction(text : str) :
+async def items(cluster : int) :
     
     try :
-        data = await preprocessing(text)
-        
-        data = [data]
-        
-        matrix = tfidf.transform(data)
-        
-        cluster = model.predict(matrix)
-        
-        return int(cluster[0])
-    except Exception as e:
-        return e
-
-
-async def items(name: str, text : str) :
-    
-    try :
-        main_cluster = await cluster_prediction(name + ' ' + text)
-        
-        subset['text'] = subset['product_name'] + subset['about_product']
-        
-        clusters = []
-        for text in subset['text']:
-            clu = await cluster_prediction(text)
-            clusters.append(clu)
-        
-        subset['cluster'] = clusters
-        
-        output = subset[subset['cluster'] == main_cluster]
-        
+        output = df[df['clusters'] == cluster].copy()
+        output = output.reset_index(drop= True)
         return output.to_dict(orient='records')
     
     except Exception as e:
         return e
     
 
-
-
-
+async def search_result(text : str) :
+    text = text.lower().strip()
+    output = []
+    for row in dt :
+        if text in str(row['title']).lower().strip() :
+            output.append(row)
+                
+        if len(output) == 15 :
+            
+            return output
+        
+    return {'msg' : 'No product Found'}
 
