@@ -1,6 +1,15 @@
-from fastapi import FastAPI, Query
-from functions import home_page, items, search_result
-from typing import Annotated, Optional
+from fastapi import FastAPI
+import pandas as pd
+from fastapi.responses import JSONResponse
+import random
+
+async def all_products() :
+    df = pd.read_csv('datasets/cleaned.csv')
+    
+    num = random.randint(1000, 5000)
+    sample =  df.loc[num : num + 3000].reset_index(drop= True)
+    
+    return JSONResponse(content= sample.to_dict(orient='records'))
 
 app = FastAPI()
 
@@ -10,18 +19,6 @@ def homepage():
 
 @app.get('/all_products/')
 async def main_page():
-    data =  await home_page()
+    data =  await all_products()
     return  data
-
-@app.get('/product/{cluster}')
-async def return_item(cluster : int) :
-    out = await items(cluster)
-    return out
-
-@app.get('/product_search/')
-async def searching(text : Annotated[str, Query(max_length=10, min_length=3)]) :
-    
-    out = await search_result(text) 
-    
-    return out
 
